@@ -29,14 +29,14 @@ class GameDashboard extends StatefulWidget {
 class _GameDashboardState extends State<GameDashboard> {
   int _xp = 0;
   int _level = 1;
-  int _monsterHp = 100;
+  int _focusProgress = 0;
   final int _xpPerLevel = 100;
 
   int _physical = 10;
   int _knowledge = 10;
   int _energy = 10;
 
-  final List<Map<String, dynamic>> _quests = [
+  List<Map<String, dynamic>> _quests = [
     {"title": "Morning Walk", "desc": "Completed 4,000 steps today", "xp": 40, "isDone": false, "type": "task"},
     {"title": "Social Connection", "desc": "Had a meaningful conversation", "xp": 30, "isDone": false, "type": "task"},
     {"title": "Study Session", "desc": "Focused for 20 mins without distractions", "xp": 50, "isDone": false, "type": "boss"},
@@ -68,33 +68,45 @@ class _GameDashboardState extends State<GameDashboard> {
     await prefs.setInt('energy', _energy);
   }
 
-  void _showLevelUpDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.stars, color: Colors.amber, size: 80),
-            const SizedBox(height: 20),
-            const Text("LEVEL UP!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.amber, letterSpacing: 2)),
-            const SizedBox(height: 10),
-            Text("You are now Level $_level", style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 20),
-            const Text("Your potential is growing. Keep going!", textAlign: TextAlign.center, style: TextStyle(color: Colors.white60)),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("AWESOME", style: TextStyle(color: Colors.cyanAccent))),
-        ],
-      ),
+  void _resetQuests() {
+    setState(() {
+      for (var quest in _quests) {
+        quest['isDone'] = false;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("New day started! Quests are ready.")),
     );
   }
 
+  // --- UPDATED TOGGLE LOGIC (COMPLETE AND UNDO) ---
+  void _handleQuestTap(int index) {
+    setState(() {
+      if (_quests[index]['isDone']) {
+        // UNDO THE WORK
+        _quests[index]['isDone'] = false;
+        _xp -= _quests[index]['xp'] as int;
+        
+        // Lower stats back down
+        if (_quests[index]['title'] == "Study Session") _knowledge -= 5;
+        if (_quests[index]['title'] == "Morning Walk") _energy -= 5;
+        if (_quests[index]['title'] == "Social Connection") _physical -= 3;
+
+        // Prevent XP from going below 0
+        if (_xp < 0) _xp = 0;
+      } else {
+        // DO THE WORK
+        if (_quests[index]['type'] == 'boss') {
+          _startFocusChallenge();
+        } else {
+          _completeQuest(index);
+        }
+      }
+    });
+    _saveStats();
+  }
+
   void _completeQuest(int index) {
-    if (_quests[index]['isDone']) return;
     setState(() {
       _quests[index]['isDone'] = true;
       _xp += _quests[index]['xp'] as int;
@@ -112,33 +124,56 @@ class _GameDashboardState extends State<GameDashboard> {
     _saveStats();
   }
 
-  void _startBossBattle() {
+  void _showLevelUpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.stars, color: Colors.amber, size: 80),
+            const SizedBox(height: 20),
+            const Text("LEVEL UP!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.amber, letterSpacing: 2)),
+            const SizedBox(height: 10),
+            Text("You reached Level $_level", style: const TextStyle(fontSize: 18)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CONTINUE", style: TextStyle(color: Colors.cyanAccent))),
+        ],
+      ),
+    );
+  }
+
+  void _startFocusChallenge() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text("FOCUS CHALLENGE", style: TextStyle(color: Colors.redAccent)),
+          title: const Text("FOCUS CHALLENGE", style: TextStyle(color: Colors.cyanAccent)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.timer_off, size: 60, color: Colors.redAccent),
-              const SizedBox(height: 20),
-              LinearProgressIndicator(value: _monsterHp / 100, color: Colors.redAccent, backgroundColor: Colors.white10),
+              const Icon(Icons.psychology, size: 60, color: Colors.cyanAccent),
               const SizedBox(height: 10),
-              Text("Concentration: $_monsterHp%"),
+              LinearProgressIndicator(value: _focusProgress / 100, color: Colors.cyanAccent, backgroundColor: Colors.white10),
+              const SizedBox(height: 10),
+              Text("Focus Level: $_focusProgress%"),
             ],
           ),
           actions: [
             ElevatedButton(
               onPressed: () {
                 setDialogState(() {
-                  _monsterHp -= 25;
-                  if (_monsterHp <= 0) {
+                  _focusProgress += 25;
+                  if (_focusProgress >= 100) {
                     Navigator.pop(context);
                     _completeQuest(2);
-                    _monsterHp = 100;
+                    _focusProgress = 0;
                   }
                 });
               },
@@ -219,13 +254,31 @@ class _GameDashboardState extends State<GameDashboard> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 color: _quests[i]['isDone'] ? Colors.green.withOpacity(0.1) : Colors.white.withOpacity(0.05),
                 child: ListTile(
-                  leading: Icon(_quests[i]['type'] == 'boss' ? Icons.stars : Icons.circle_outlined, color: Colors.cyanAccent),
+                  leading: Icon(
+                    _quests[i]['type'] == 'boss' ? Icons.emoji_events : Icons.directions_run, 
+                    color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent
+                  ),
                   title: Text(_quests[i]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(_quests[i]['desc']),
-                  onTap: () => _quests[i]['type'] == 'boss' ? _startBossBattle() : _completeQuest(i),
+                  // --- THE TICK MARK ---
+                  trailing: _quests[i]['isDone'] 
+                    ? const Icon(Icons.check_circle, color: Colors.green) 
+                    : Text("+${_quests[i]['xp']} XP", style: const TextStyle(color: Colors.cyanAccent)),
+                  onTap: () => _handleQuestTap(i),
                 ),
               ),
               childCount: _quests.length,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(30.0),
+              child: OutlinedButton.icon(
+                onPressed: _resetQuests,
+                icon: const Icon(Icons.refresh, color: Colors.cyanAccent),
+                label: const Text("START NEW DAY"),
+                style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.cyanAccent)),
+              ),
             ),
           ),
         ],

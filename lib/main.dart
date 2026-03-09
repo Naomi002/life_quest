@@ -33,16 +33,16 @@ class _GameDashboardState extends State<GameDashboard> {
   int _monsterHp = 100;
   final int _xpPerLevel = 100;
 
-  // Character Attributes
-  int _strength = 10;
-  int _intelligence = 10;
-  int _stamina = 10;
+  // Real-Life Attribute Labels
+  int _physical = 10;
+  int _knowledge = 10;
+  int _energy = 10;
   int _skillPoints = 0;
 
   final List<Map<String, dynamic>> _quests = [
-    {"title": "Step Master", "desc": "Walk 4,000 steps", "xp": 40, "isDone": false, "type": "task"},
-    {"title": "Social Link", "desc": "Talk to 1 new person", "xp": 30, "isDone": false, "type": "task"},
-    {"title": "Monster Hunter", "desc": "Study: Defeat Procrastination", "xp": 50, "isDone": false, "type": "boss"},
+    {"title": "Morning Walk", "desc": "Completed 4,000 steps today", "xp": 40, "isDone": false, "type": "task"},
+    {"title": "Social Connection", "desc": "Had a meaningful conversation", "xp": 30, "isDone": false, "type": "task"},
+    {"title": "Study Session", "desc": "Focused for 20 mins without distractions", "xp": 50, "isDone": false, "type": "boss"},
   ];
 
   @override
@@ -51,15 +51,14 @@ class _GameDashboardState extends State<GameDashboard> {
     _loadStats();
   }
 
-  // --- PERSISTENCE LAYER ---
   Future<void> _loadStats() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _xp = prefs.getInt('xp') ?? 0;
       _level = prefs.getInt('level') ?? 1;
-      _strength = prefs.getInt('strength') ?? 10;
-      _intelligence = prefs.getInt('intelligence') ?? 10;
-      _stamina = prefs.getInt('stamina') ?? 10;
+      _physical = prefs.getInt('physical') ?? 10;
+      _knowledge = prefs.getInt('knowledge') ?? 10;
+      _energy = prefs.getInt('energy') ?? 10;
       _skillPoints = prefs.getInt('skillPoints') ?? 0;
     });
   }
@@ -68,23 +67,22 @@ class _GameDashboardState extends State<GameDashboard> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('xp', _xp);
     await prefs.setInt('level', _level);
-    await prefs.setInt('strength', _strength);
-    await prefs.setInt('intelligence', _intelligence);
-    await prefs.setInt('stamina', _stamina);
+    await prefs.setInt('physical', _physical);
+    await prefs.setInt('knowledge', _knowledge);
+    await prefs.setInt('energy', _energy);
     await prefs.setInt('skillPoints', _skillPoints);
   }
 
-  // --- GAMEPLAY LOGIC ---
   void _completeQuest(int index) {
     if (_quests[index]['isDone']) return;
     setState(() {
       _quests[index]['isDone'] = true;
       _xp += _quests[index]['xp'] as int;
 
-      // Attribute Growth Logic
-      if (_quests[index]['title'] == "Monster Hunter") _intelligence += 5;
-      if (_quests[index]['title'] == "Step Master") _stamina += 5;
-      if (_quests[index]['title'] == "Social Link") _strength += 3;
+      // Real-world growth mapping
+      if (_quests[index]['title'] == "Study Session") _knowledge += 5;
+      if (_quests[index]['title'] == "Morning Walk") _energy += 5;
+      if (_quests[index]['title'] == "Social Connection") _physical += 3;
 
       if (_xp >= _xpPerLevel) {
         _level++;
@@ -102,15 +100,17 @@ class _GameDashboardState extends State<GameDashboard> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text("BATTLE: PROCRASTINATION", style: TextStyle(color: Colors.redAccent, letterSpacing: 2)),
+          title: const Text("DEFEAT PROCRASTINATION", style: TextStyle(color: Colors.redAccent, letterSpacing: 1)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.adb, size: 80, color: Colors.redAccent),
+              const Icon(Icons.timer_off, size: 80, color: Colors.redAccent),
+              const SizedBox(height: 20),
+              const Text("Tap to focus and finish your work!", textAlign: TextAlign.center),
               const SizedBox(height: 20),
               LinearProgressIndicator(value: _monsterHp / 100, color: Colors.redAccent, backgroundColor: Colors.white10),
               const SizedBox(height: 10),
-              Text("Monster HP: $_monsterHp", style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text("Task Difficulty: $_monsterHp%", style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           actions: [
@@ -125,7 +125,7 @@ class _GameDashboardState extends State<GameDashboard> {
                   }
                 });
               },
-              child: const Text("TAP TO STUDY"),
+              child: const Text("CONCENTRATE"),
             ),
           ],
         ),
@@ -133,10 +133,10 @@ class _GameDashboardState extends State<GameDashboard> {
     );
   }
 
-  // --- UI COMPONENTS ---
   Widget _buildStatCard(String label, int value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      width: 100,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
@@ -175,16 +175,16 @@ class _GameDashboardState extends State<GameDashboard> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 40),
-                    const CircleAvatar(radius: 35, backgroundColor: Colors.white10, child: Icon(Icons.bolt, color: Colors.amber, size: 30)),
+                    const CircleAvatar(radius: 35, backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.cyanAccent, size: 30)),
                     const SizedBox(height: 10),
-                    Text("LVL $_level HERO", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    Text("LEVEL $_level", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2)),
                     const SizedBox(height: 8),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 50),
-                      child: LinearProgressIndicator(value: _xp / _xpPerLevel, color: Colors.amber, backgroundColor: Colors.white10),
+                      child: LinearProgressIndicator(value: _xp / _xpPerLevel, color: Colors.cyanAccent, backgroundColor: Colors.white10),
                     ),
                     const SizedBox(height: 5),
-                    Text("XP: $_xp / $_xpPerLevel", style: const TextStyle(fontSize: 10, color: Colors.white38)),
+                    Text("EXPERIENCE: $_xp / $_xpPerLevel", style: const TextStyle(fontSize: 10, color: Colors.white38)),
                   ],
                 ),
               ),
@@ -196,9 +196,9 @@ class _GameDashboardState extends State<GameDashboard> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatCard("STR", _strength, Icons.fitness_center, Colors.orangeAccent),
-                  _buildStatCard("INT", _intelligence, Icons.psychology, Colors.lightBlueAccent),
-                  _buildStatCard("STM", _stamina, Icons.bolt, Colors.greenAccent),
+                  _buildStatCard("PHYSICAL", _physical, Icons.fitness_center, Colors.orangeAccent),
+                  _buildStatCard("KNOWLEDGE", _knowledge, Icons.psychology, Colors.lightBlueAccent),
+                  _buildStatCard("ENERGY", _energy, Icons.bolt, Colors.greenAccent),
                 ],
               ),
             ),
@@ -212,12 +212,12 @@ class _GameDashboardState extends State<GameDashboard> {
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   leading: Icon(
-                    _quests[i]['type'] == 'boss' ? Icons.fireplace : Icons.auto_awesome, 
-                    color: _quests[i]['isDone'] ? Colors.green : Colors.deepPurpleAccent
+                    _quests[i]['type'] == 'boss' ? Icons.emoji_events : Icons.check_circle_outline, 
+                    color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent
                   ),
                   title: Text(_quests[i]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(_quests[i]['desc'], style: const TextStyle(fontSize: 12, color: Colors.white60)),
-                  trailing: Text("+${_quests[i]['xp']} XP", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                  trailing: Text("+${_quests[i]['xp']} XP", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
                   onTap: () => _quests[i]['type'] == 'boss' ? _startBossBattle() : _completeQuest(i),
                 ),
               ),

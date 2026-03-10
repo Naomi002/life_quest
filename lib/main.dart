@@ -74,7 +74,7 @@ class _GameDashboardState extends State<GameDashboard> {
     await prefs.setInt('streak', _streak);
   }
 
-  // --- GET TITLE BASED ON UNLIMITED LEVEL ---
+  // --- GET TITLE BASED ON LEVEL ---
   String _getHeroTitle() {
     if (_level >= 50) return "IMMORTAL LEGEND";
     if (_level >= 30) return "GRANDMASTER";
@@ -131,7 +131,6 @@ class _GameDashboardState extends State<GameDashboard> {
       if (_quests[index]['title'] == "Morning Walk") _energy += 5;
       if (_quests[index]['title'] == "Social Connection") _physical += 3;
 
-      // Logic for Unlimited Levels
       while (_xp >= _xpPerLevel) {
         _level++;
         _xp -= _xpPerLevel;
@@ -154,8 +153,6 @@ class _GameDashboardState extends State<GameDashboard> {
             const SizedBox(height: 20),
             const Text("LEVEL UP!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.amber)),
             Text("You reached Level $_level", style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 10),
-            Text("Current Rank: ${_getHeroTitle()}", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
@@ -305,9 +302,35 @@ class _GameDashboardState extends State<GameDashboard> {
               childCount: _quests.length,
             ),
           ),
+          
+          // Lifetime Stats Section
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("LIFETIME SUMMARY", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.cyanAccent)),
+                  const SizedBox(height: 15),
+                  _buildSummaryRow("Total Physical Points", _physical),
+                  _buildSummaryRow("Total Knowledge Points", _knowledge),
+                  _buildSummaryRow("Total Energy Points", _energy),
+                  const Divider(height: 30, color: Colors.white10),
+                  _buildSummaryRow("Current Hero Rank", 0, labelOverride: _getHeroTitle()),
+                ],
+              ),
+            ),
+          ),
+
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(30.0),
+              padding: const EdgeInsets.only(left: 30, right: 30, bottom: 50),
               child: OutlinedButton.icon(
                 onPressed: _resetQuests,
                 icon: const Icon(Icons.refresh),
@@ -316,6 +339,19 @@ class _GameDashboardState extends State<GameDashboard> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, int value, {String? labelOverride}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.white60)),
+          Text(labelOverride ?? value.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
         ],
       ),
     );

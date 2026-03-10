@@ -31,6 +31,7 @@ class _GameDashboardState extends State<GameDashboard> {
   int _xp = 0;
   int _level = 1;
   int _focusProgress = 0;
+  int _streak = 0; // New Streak Variable
   final int _xpPerLevel = 100;
 
   // Real-Life Attribute Labels
@@ -59,6 +60,7 @@ class _GameDashboardState extends State<GameDashboard> {
       _physical = prefs.getInt('physical') ?? 10;
       _knowledge = prefs.getInt('knowledge') ?? 10;
       _energy = prefs.getInt('energy') ?? 10;
+      _streak = prefs.getInt('streak') ?? 0; // Load Streak
     });
   }
 
@@ -69,6 +71,7 @@ class _GameDashboardState extends State<GameDashboard> {
     await prefs.setInt('physical', _physical);
     await prefs.setInt('knowledge', _knowledge);
     await prefs.setInt('energy', _energy);
+    await prefs.setInt('streak', _streak); // Save Streak
   }
 
   // --- NEW DAY RESET ---
@@ -77,10 +80,11 @@ class _GameDashboardState extends State<GameDashboard> {
       for (var quest in _quests) {
         quest['isDone'] = false;
       }
+      _streak += 1; // Increase Streak
     });
-    _saveStats(); // Save the fact that quests are now active again
+    _saveStats();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("New day started! Quests are ready.")),
+      SnackBar(content: Text("Day $_streak started! Keep it up!")),
     );
   }
 
@@ -88,7 +92,6 @@ class _GameDashboardState extends State<GameDashboard> {
   void _handleQuestTap(int index) {
     setState(() {
       if (_quests[index]['isDone']) {
-        // UNDO Logic: Click again to remove the checkmark
         _quests[index]['isDone'] = false;
         _xp -= _quests[index]['xp'] as int;
         
@@ -98,7 +101,6 @@ class _GameDashboardState extends State<GameDashboard> {
 
         if (_xp < 0) _xp = 0;
       } else {
-        // DO THE WORK Logic
         if (_quests[index]['type'] == 'boss') {
           _startFocusChallenge();
         } else {
@@ -138,16 +140,12 @@ class _GameDashboardState extends State<GameDashboard> {
           children: [
             const Icon(Icons.stars, color: Colors.amber, size: 80),
             const SizedBox(height: 20),
-            const Text("LEVEL UP!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.amber, letterSpacing: 2)),
-            const SizedBox(height: 10),
+            const Text("LEVEL UP!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.amber)),
             Text("You reached Level $_level", style: const TextStyle(fontSize: 18)),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context), 
-            child: const Text("CONTINUE", style: TextStyle(color: Colors.cyanAccent))
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CONTINUE", style: TextStyle(color: Colors.cyanAccent))),
         ],
       ),
     );
@@ -165,8 +163,6 @@ class _GameDashboardState extends State<GameDashboard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.psychology, size: 60, color: Colors.cyanAccent),
-              const SizedBox(height: 20),
-              const Text("Tap to build focus!", textAlign: TextAlign.center),
               const SizedBox(height: 20),
               LinearProgressIndicator(value: _focusProgress / 100, color: Colors.cyanAccent, backgroundColor: Colors.white10),
               const SizedBox(height: 10),
@@ -219,45 +215,44 @@ class _GameDashboardState extends State<GameDashboard> {
       backgroundColor: const Color(0xFF121212),
       body: CustomScrollView(
         slivers: [
-          // Header Section
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 240,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.deepPurple, Color(0xFF121212)], 
-                    begin: Alignment.topCenter, 
-                    end: Alignment.bottomCenter
-                  ),
+                  gradient: LinearGradient(colors: [Colors.deepPurple, Color(0xFF121212)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 40),
-                    const CircleAvatar(
-                      radius: 30, 
-                      backgroundColor: Colors.cyanAccent, 
-                      child: Icon(Icons.person, color: Colors.black)
+                    const SizedBox(height: 50),
+                    // Streak Display
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_fire_department, color: Colors.orange, size: 16),
+                          const SizedBox(width: 4),
+                          Text("$_streak DAY STREAK", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    Text("LEVEL $_level HERO", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const CircleAvatar(radius: 30, backgroundColor: Colors.cyanAccent, child: Icon(Icons.person, color: Colors.black)),
+                    const SizedBox(height: 10),
+                    Text("LEVEL $_level", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 10),
-                      child: LinearProgressIndicator(
-                        value: _xp / _xpPerLevel, 
-                        color: Colors.cyanAccent, 
-                        backgroundColor: Colors.white10
-                      ),
+                      child: LinearProgressIndicator(value: _xp / _xpPerLevel, color: Colors.cyanAccent, backgroundColor: Colors.white10),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          
-          // Attributes Row
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -271,40 +266,32 @@ class _GameDashboardState extends State<GameDashboard> {
               ),
             ),
           ),
-
-          // Quest List
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, i) => Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 color: _quests[i]['isDone'] ? Colors.green.withOpacity(0.1) : Colors.white.withOpacity(0.05),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
-                  leading: Icon(
-                    _quests[i]['type'] == 'boss' ? Icons.emoji_events : Icons.directions_run, 
-                    color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent
-                  ),
+                  leading: Icon(_quests[i]['type'] == 'boss' ? Icons.emoji_events : Icons.directions_run, color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent),
                   title: Text(_quests[i]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(_quests[i]['desc']),
                   trailing: _quests[i]['isDone'] 
                     ? const Icon(Icons.check_circle, color: Colors.green) 
-                    : Text("+${_quests[i]['xp']} XP", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                    : Text("+${_quests[i]['xp']} XP", style: const TextStyle(color: Colors.cyanAccent)),
                   onTap: () => _handleQuestTap(i),
                 ),
               ),
               childCount: _quests.length,
             ),
           ),
-
-          // Action Button
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(30.0),
               child: OutlinedButton.icon(
                 onPressed: _resetQuests,
-                icon: const Icon(Icons.refresh, color: Colors.cyanAccent),
-                label: const Text("START NEW DAY", style: TextStyle(color: Colors.cyanAccent)),
-                style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.cyanAccent)),
+                icon: const Icon(Icons.refresh),
+                label: const Text("START NEW DAY"),
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.cyanAccent, side: const BorderSide(color: Colors.cyanAccent)),
               ),
             ),
           ),

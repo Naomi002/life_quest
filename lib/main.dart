@@ -31,8 +31,9 @@ class _GameDashboardState extends State<GameDashboard> {
   int _xp = 0;
   int _level = 1;
   int _focusProgress = 0;
-  int _streak = 0; // New Streak Variable
+  int _streak = 0;
   final int _xpPerLevel = 100;
+  final int _maxLevel = 10; // Level Cap
 
   // Real-Life Attribute Labels
   int _physical = 10;
@@ -60,7 +61,7 @@ class _GameDashboardState extends State<GameDashboard> {
       _physical = prefs.getInt('physical') ?? 10;
       _knowledge = prefs.getInt('knowledge') ?? 10;
       _energy = prefs.getInt('energy') ?? 10;
-      _streak = prefs.getInt('streak') ?? 0; // Load Streak
+      _streak = prefs.getInt('streak') ?? 0;
     });
   }
 
@@ -71,7 +72,15 @@ class _GameDashboardState extends State<GameDashboard> {
     await prefs.setInt('physical', _physical);
     await prefs.setInt('knowledge', _knowledge);
     await prefs.setInt('energy', _energy);
-    await prefs.setInt('streak', _streak); // Save Streak
+    await prefs.setInt('streak', _streak);
+  }
+
+  // --- GET TITLE BASED ON LEVEL ---
+  String _getHeroTitle() {
+    if (_level >= 10) return "MASTER OF LIFE";
+    if (_level >= 7) return "ELITE ACHIEVER";
+    if (_level >= 4) return "ACCOMPLISHED";
+    return "NOVICE";
   }
 
   // --- NEW DAY RESET ---
@@ -80,7 +89,7 @@ class _GameDashboardState extends State<GameDashboard> {
       for (var quest in _quests) {
         quest['isDone'] = false;
       }
-      _streak += 1; // Increase Streak
+      _streak += 1;
     });
     _saveStats();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -112,6 +121,8 @@ class _GameDashboardState extends State<GameDashboard> {
   }
 
   void _completeQuest(int index) {
+    if (_level >= _maxLevel && _xp >= _xpPerLevel) return; // Prevent progress if capped
+
     setState(() {
       _quests[index]['isDone'] = true;
       _xp += _quests[index]['xp'] as int;
@@ -120,10 +131,12 @@ class _GameDashboardState extends State<GameDashboard> {
       if (_quests[index]['title'] == "Morning Walk") _energy += 5;
       if (_quests[index]['title'] == "Social Connection") _physical += 3;
 
-      if (_xp >= _xpPerLevel) {
+      if (_xp >= _xpPerLevel && _level < _maxLevel) {
         _level++;
         _xp -= _xpPerLevel;
         _showLevelUpDialog();
+      } else if (_level >= _maxLevel) {
+        _xp = _xpPerLevel; // Keep bar full at max level
       }
     });
     _saveStats();
@@ -142,6 +155,8 @@ class _GameDashboardState extends State<GameDashboard> {
             const SizedBox(height: 20),
             const Text("LEVEL UP!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.amber)),
             Text("You reached Level $_level", style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 10),
+            Text("New Title: ${_getHeroTitle()}", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
@@ -216,7 +231,7 @@ class _GameDashboardState extends State<GameDashboard> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 240,
+            expandedHeight: 260,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -226,7 +241,7 @@ class _GameDashboardState extends State<GameDashboard> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 50),
+                    const SizedBox(height: 60),
                     // Streak Display
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -234,9 +249,9 @@ class _GameDashboardState extends State<GameDashboard> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.local_fire_department, color: Colors.orange, size: 16),
+                          const Icon(Icons.local_fire_department, color: Colors.orange, size: 14),
                           const SizedBox(width: 4),
-                          Text("$_streak DAY STREAK", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text("$_streak DAY STREAK", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 10)),
                         ],
                       ),
                     ),
@@ -244,10 +259,19 @@ class _GameDashboardState extends State<GameDashboard> {
                     const CircleAvatar(radius: 30, backgroundColor: Colors.cyanAccent, child: Icon(Icons.person, color: Colors.black)),
                     const SizedBox(height: 10),
                     Text("LEVEL $_level", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    // Title Badge
+                    Text(_getHeroTitle(), style: const TextStyle(fontSize: 12, color: Colors.cyanAccent, letterSpacing: 2, fontWeight: FontWeight.w300)),
+                    const SizedBox(height: 10),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 10),
-                      child: LinearProgressIndicator(value: _xp / _xpPerLevel, color: Colors.cyanAccent, backgroundColor: Colors.white10),
+                      padding: const EdgeInsets.symmetric(horizontal: 60),
+                      child: LinearProgressIndicator(
+                        value: _level >= _maxLevel ? 1.0 : _xp / _xpPerLevel, 
+                        color: _level >= _maxLevel ? Colors.amber : Colors.cyanAccent, 
+                        backgroundColor: Colors.white10
+                      ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(_level >= _maxLevel ? "MAX LEVEL REACHED" : "XP: $_xp / $_xpPerLevel", style: const TextStyle(fontSize: 9, color: Colors.white38)),
                   ],
                 ),
               ),

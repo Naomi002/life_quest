@@ -33,7 +33,6 @@ class _GameDashboardState extends State<GameDashboard> {
   int _focusProgress = 0;
   int _streak = 0;
   final int _xpPerLevel = 100;
-  final int _maxLevel = 10; // Level Cap
 
   // Real-Life Attribute Labels
   int _physical = 10;
@@ -75,8 +74,11 @@ class _GameDashboardState extends State<GameDashboard> {
     await prefs.setInt('streak', _streak);
   }
 
-  // --- GET TITLE BASED ON LEVEL ---
+  // --- GET TITLE BASED ON UNLIMITED LEVEL ---
   String _getHeroTitle() {
+    if (_level >= 50) return "IMMORTAL LEGEND";
+    if (_level >= 30) return "GRANDMASTER";
+    if (_level >= 20) return "CONQUEROR";
     if (_level >= 10) return "MASTER OF LIFE";
     if (_level >= 7) return "ELITE ACHIEVER";
     if (_level >= 4) return "ACCOMPLISHED";
@@ -121,8 +123,6 @@ class _GameDashboardState extends State<GameDashboard> {
   }
 
   void _completeQuest(int index) {
-    if (_level >= _maxLevel && _xp >= _xpPerLevel) return; // Prevent progress if capped
-
     setState(() {
       _quests[index]['isDone'] = true;
       _xp += _quests[index]['xp'] as int;
@@ -131,12 +131,11 @@ class _GameDashboardState extends State<GameDashboard> {
       if (_quests[index]['title'] == "Morning Walk") _energy += 5;
       if (_quests[index]['title'] == "Social Connection") _physical += 3;
 
-      if (_xp >= _xpPerLevel && _level < _maxLevel) {
+      // Logic for Unlimited Levels
+      while (_xp >= _xpPerLevel) {
         _level++;
         _xp -= _xpPerLevel;
         _showLevelUpDialog();
-      } else if (_level >= _maxLevel) {
-        _xp = _xpPerLevel; // Keep bar full at max level
       }
     });
     _saveStats();
@@ -156,11 +155,11 @@ class _GameDashboardState extends State<GameDashboard> {
             const Text("LEVEL UP!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.amber)),
             Text("You reached Level $_level", style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 10),
-            Text("New Title: ${_getHeroTitle()}", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+            Text("Current Rank: ${_getHeroTitle()}", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CONTINUE", style: TextStyle(color: Colors.cyanAccent))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("AWESOME", style: TextStyle(color: Colors.cyanAccent))),
         ],
       ),
     );
@@ -242,7 +241,6 @@ class _GameDashboardState extends State<GameDashboard> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 60),
-                    // Streak Display
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
@@ -259,19 +257,18 @@ class _GameDashboardState extends State<GameDashboard> {
                     const CircleAvatar(radius: 30, backgroundColor: Colors.cyanAccent, child: Icon(Icons.person, color: Colors.black)),
                     const SizedBox(height: 10),
                     Text("LEVEL $_level", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    // Title Badge
                     Text(_getHeroTitle(), style: const TextStyle(fontSize: 12, color: Colors.cyanAccent, letterSpacing: 2, fontWeight: FontWeight.w300)),
                     const SizedBox(height: 10),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 60),
                       child: LinearProgressIndicator(
-                        value: _level >= _maxLevel ? 1.0 : _xp / _xpPerLevel, 
-                        color: _level >= _maxLevel ? Colors.amber : Colors.cyanAccent, 
+                        value: _xp / _xpPerLevel, 
+                        color: Colors.cyanAccent, 
                         backgroundColor: Colors.white10
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(_level >= _maxLevel ? "MAX LEVEL REACHED" : "XP: $_xp / $_xpPerLevel", style: const TextStyle(fontSize: 9, color: Colors.white38)),
+                    Text("XP: $_xp / $_xpPerLevel", style: const TextStyle(fontSize: 9, color: Colors.white38)),
                   ],
                 ),
               ),

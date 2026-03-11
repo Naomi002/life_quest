@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:typed_data'; // New: Required for Chrome memory
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 
 void main() => runApp(const LifeQuestApp());
 
@@ -41,11 +39,11 @@ class _GameDashboardState extends State<GameDashboard> {
   int _knowledge = 10;
   int _energy = 10;
   
-  String? _imagePath; 
+  Uint8List? _webImage; // New: Stores image data for Chrome
 
   List<Map<String, dynamic>> _quests = [
-    {"title": "Morning Walk", "desc": "Completed 4,000 steps today", "xp": 40, "isDone": false, "type": "task"},
-    {"title": "Social Connection", "desc": "Had a meaningful conversation", "xp": 30, "isDone": false, "type": "task"},
+    {"title": "Morning Walk", "desc": "Completed 4,000 steps today", "xp": 40, "isDone": false},
+    {"title": "Social Connection", "desc": "Had a meaningful conversation", "xp": 30, "isDone": false},
     {"title": "Study Session", "desc": "Focused for 20 mins without distractions", "xp": 50, "isDone": false, "type": "boss"},
   ];
 
@@ -64,11 +62,10 @@ class _GameDashboardState extends State<GameDashboard> {
       _knowledge = prefs.getInt('knowledge') ?? 10;
       _energy = prefs.getInt('energy') ?? 10;
       _streak = prefs.getInt('streak') ?? 0;
-      _imagePath = prefs.getString('profileImage'); 
+      
+      // Note: On web, persisting images in SharedPreferences is difficult.
+      // For now, this will allow you to see the photo while the tab is open.
     });
-    if (_imagePath != null) {
-       print("DEBUG: Loading image from: $_imagePath");
-    }
   }
 
   Future<void> _saveStats() async {
@@ -79,40 +76,24 @@ class _GameDashboardState extends State<GameDashboard> {
     await prefs.setInt('knowledge', _knowledge);
     await prefs.setInt('energy', _energy);
     await prefs.setInt('streak', _streak);
-    if (_imagePath != null) {
-      await prefs.setString('profileImage', _imagePath!);
-    }
   }
 
+  // --- CHROME COMPATIBLE IMAGE PICKER ---
   Future<void> _pickImage() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-      
-      if (image != null) {
-        final directory = await getApplicationDocumentsDirectory();
-        final String fileName = "profile_${DateTime.now().millisecondsSinceEpoch}.png";
-        final String permanentPath = path.join(directory.path, fileName);
-
-        final File localImage = await File(image.path).copy(permanentPath);
-
-        setState(() {
-          _imagePath = localImage.path;
-        });
-        await _saveStats();
-        print("DEBUG: Image saved successfully at $permanentPath");
-      }
-    } catch (e) {
-      print("DEBUG: Error picking image: $e");
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      var f = await image.readAsBytes();
+      setState(() {
+        _webImage = f;
+      });
+      print("✅ Chrome: Image loaded into memory!");
     }
   }
 
   String _getHeroTitle() {
-    if (_level >= 50) return "IMMORTAL LEGEND";
-    if (_level >= 30) return "GRANDMASTER";
-    if (_level >= 20) return "CONQUEROR";
     if (_level >= 10) return "MASTER OF LIFE";
-    if (_level >= 7) return "ELITE ACHIEVER";
     if (_level >= 4) return "ACCOMPLISHED";
     return "NOVICE";
   }
@@ -134,7 +115,7 @@ class _GameDashboardState extends State<GameDashboard> {
         _xp -= _quests[index]['xp'] as int;
         if (_xp < 0) _xp = 0;
       } else {
-        if (_quests[index]['type'] == 'boss') {
+        if (_quests[index]['title'] == "Study Session") {
           _startFocusChallenge();
         } else {
           _completeQuest(index);
@@ -200,8 +181,6 @@ class _GameDashboardState extends State<GameDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    bool hasImage = _imagePath != null && File(_imagePath!).existsSync();
-
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       body: CustomScrollView(
@@ -226,16 +205,13 @@ class _GameDashboardState extends State<GameDashboard> {
                           CircleAvatar(
                             radius: 50,
                             backgroundColor: Colors.white10,
-                            backgroundImage: hasImage ? FileImage(File(_imagePath!)) : null,
-                            child: !hasImage 
-                                ? const Icon(Icons.person, color: Colors.cyanAccent, size: 50) 
+                            // Use Image.memory for Chrome compatibility
+                            backgroundImage: _webImage != null ? MemoryImage(_webImage!) : null,
+                            child: _webImage == null 
+                                ? const Icon(Icons.add_a_photo, color: Colors.cyanAccent, size: 30) 
                                 : null,
                           ),
-                          const CircleAvatar(
-                            radius: 15, 
-                            backgroundColor: Colors.cyanAccent, 
-                            child: Icon(Icons.camera_alt, color: Colors.black, size: 16)
-                          ),
+                          const CircleAvatar(radius: 15, backgroundColor: Colors.black, child: Icon(Icons.edit, color: Colors.cyanAccent, size: 16)),
                         ],
                       ),
                     ),
@@ -271,7 +247,7 @@ class _GameDashboardState extends State<GameDashboard> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 color: _quests[i]['isDone'] ? Colors.green.withOpacity(0.1) : Colors.white.withOpacity(0.05),
                 child: ListTile(
-                  leading: Icon(_quests[i]['type'] == 'boss' ? Icons.emoji_events : Icons.directions_run, color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent),
+                  leading: Icon(Icons.directions_run, color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent),
                   title: Text(_quests[i]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(_quests[i]['desc']),
                   trailing: _quests[i]['isDone'] ? const Icon(Icons.check_circle, color: Colors.green) : Text("+${_quests[i]['xp']} XP"),

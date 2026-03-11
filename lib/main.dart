@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:typed_data'; // New: Required for Chrome memory
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
@@ -31,7 +31,6 @@ class GameDashboard extends StatefulWidget {
 class _GameDashboardState extends State<GameDashboard> {
   int _xp = 0;
   int _level = 1;
-  int _focusProgress = 0;
   int _streak = 0;
   final int _xpPerLevel = 100;
 
@@ -39,12 +38,13 @@ class _GameDashboardState extends State<GameDashboard> {
   int _knowledge = 10;
   int _energy = 10;
   
-  Uint8List? _webImage; // New: Stores image data for Chrome
+  Uint8List? _webImage;
+  String _heroName = "NABILA";
 
   List<Map<String, dynamic>> _quests = [
-    {"title": "Morning Walk", "desc": "Completed 4,000 steps today", "xp": 40, "isDone": false},
-    {"title": "Social Connection", "desc": "Had a meaningful conversation", "xp": 30, "isDone": false},
-    {"title": "Study Session", "desc": "Focused for 20 mins without distractions", "xp": 50, "isDone": false, "type": "boss"},
+    {"title": "Morning Walk", "desc": "4,000 steps for physical health", "xp": 40, "isDone": false, "type": "physical"},
+    {"title": "Study Session", "desc": "20 mins of focused CC 299 work", "xp": 50, "isDone": false, "type": "knowledge"},
+    {"title": "Social Check-in", "desc": "Connect with teammates/friends", "xp": 30, "isDone": false, "type": "energy"},
   ];
 
   @override
@@ -62,9 +62,7 @@ class _GameDashboardState extends State<GameDashboard> {
       _knowledge = prefs.getInt('knowledge') ?? 10;
       _energy = prefs.getInt('energy') ?? 10;
       _streak = prefs.getInt('streak') ?? 0;
-      
-      // Note: On web, persisting images in SharedPreferences is difficult.
-      // For now, this will allow you to see the photo while the tab is open.
+      _heroName = prefs.getString('heroName') ?? "NABILA";
     });
   }
 
@@ -76,152 +74,83 @@ class _GameDashboardState extends State<GameDashboard> {
     await prefs.setInt('knowledge', _knowledge);
     await prefs.setInt('energy', _energy);
     await prefs.setInt('streak', _streak);
+    await prefs.setString('heroName', _heroName);
   }
 
-  // --- CHROME COMPATIBLE IMAGE PICKER ---
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    
     if (image != null) {
-      var f = await image.readAsBytes();
-      setState(() {
-        _webImage = f;
-      });
-      print("✅ Chrome: Image loaded into memory!");
+      var bytes = await image.readAsBytes();
+      setState(() => _webImage = bytes);
     }
-  }
-
-  String _getHeroTitle() {
-    if (_level >= 10) return "MASTER OF LIFE";
-    if (_level >= 4) return "ACCOMPLISHED";
-    return "NOVICE";
-  }
-
-  void _resetQuests() {
-    setState(() {
-      for (var quest in _quests) {
-        quest['isDone'] = false;
-      }
-      _streak += 1;
-    });
-    _saveStats();
   }
 
   void _handleQuestTap(int index) {
     setState(() {
       if (_quests[index]['isDone']) {
         _quests[index]['isDone'] = false;
-        _xp -= _quests[index]['xp'] as int;
-        if (_xp < 0) _xp = 0;
+        _xp = (_xp - (_quests[index]['xp'] as int)).clamp(0, 99999);
       } else {
-        if (_quests[index]['title'] == "Study Session") {
-          _startFocusChallenge();
-        } else {
-          _completeQuest(index);
+        _quests[index]['isDone'] = true;
+        _xp += _quests[index]['xp'] as int;
+        
+        // Update specific stats based on quest type
+        if (_quests[index]['type'] == 'physical') _physical += 5;
+        if (_quests[index]['type'] == 'knowledge') _knowledge += 5;
+        if (_quests[index]['type'] == 'energy') _energy += 5;
+
+        while (_xp >= _xpPerLevel) {
+          _level++;
+          _xp -= _xpPerLevel;
         }
       }
     });
     _saveStats();
   }
 
-  void _completeQuest(int index) {
+  void _resetDay() {
     setState(() {
-      _quests[index]['isDone'] = true;
-      _xp += _quests[index]['xp'] as int;
-      if (_quests[index]['title'] == "Study Session") _knowledge += 5;
-      if (_quests[index]['title'] == "Morning Walk") _energy += 5;
-      if (_quests[index]['title'] == "Social Connection") _physical += 3;
-
-      while (_xp >= _xpPerLevel) {
-        _level++;
-        _xp -= _xpPerLevel;
-      }
+      for (var q in _quests) { q['isDone'] = false; }
+      _streak += 1;
     });
     _saveStats();
-  }
-
-  void _startFocusChallenge() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text("FOCUS CHALLENGE"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.psychology, size: 60, color: Colors.cyanAccent),
-              const SizedBox(height: 20),
-              LinearProgressIndicator(value: _focusProgress / 100, color: Colors.cyanAccent),
-              const SizedBox(height: 10),
-              Text("Focus Level: $_focusProgress%"),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                setDialogState(() {
-                  _focusProgress += 25;
-                  if (_focusProgress >= 100) {
-                    Navigator.pop(context);
-                    _completeQuest(2);
-                    _focusProgress = 0;
-                  }
-                });
-              },
-              child: const Text("FOCUS"),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFF0F0F0F),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 250,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [Colors.deepPurple, Color(0xFF121212)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                  gradient: LinearGradient(colors: [Colors.deepPurple, Color(0xFF0F0F0F)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 40),
                     GestureDetector(
                       onTap: _pickImage,
-                      child: Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.white10,
-                            // Use Image.memory for Chrome compatibility
-                            backgroundImage: _webImage != null ? MemoryImage(_webImage!) : null,
-                            child: _webImage == null 
-                                ? const Icon(Icons.add_a_photo, color: Colors.cyanAccent, size: 30) 
-                                : null,
-                          ),
-                          const CircleAvatar(radius: 15, backgroundColor: Colors.black, child: Icon(Icons.edit, color: Colors.cyanAccent, size: 16)),
-                        ],
+                      child: CircleAvatar(
+                        radius: 45,
+                        backgroundColor: Colors.white10,
+                        backgroundImage: _webImage != null ? MemoryImage(_webImage!) : null,
+                        child: _webImage == null ? const Icon(Icons.add_a_photo, color: Colors.cyanAccent) : null,
                       ),
                     ),
-                    const SizedBox(height: 15),
-                    Text("LEVEL $_level", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    Text(_getHeroTitle(), style: const TextStyle(fontSize: 12, color: Colors.cyanAccent, letterSpacing: 2)),
+                    const SizedBox(height: 10),
+                    Text(_heroName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    Text("LEVEL $_level", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 10),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 60),
-                      child: LinearProgressIndicator(value: _xp / _xpPerLevel, color: Colors.cyanAccent),
+                      child: LinearProgressIndicator(value: _xp / _xpPerLevel, color: Colors.cyanAccent, backgroundColor: Colors.white10),
                     ),
                   ],
                 ),
@@ -247,7 +176,10 @@ class _GameDashboardState extends State<GameDashboard> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 color: _quests[i]['isDone'] ? Colors.green.withOpacity(0.1) : Colors.white.withOpacity(0.05),
                 child: ListTile(
-                  leading: Icon(Icons.directions_run, color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent),
+                  leading: Icon(
+                    _quests[i]['type'] == 'knowledge' ? Icons.school : Icons.directions_run,
+                    color: _quests[i]['isDone'] ? Colors.green : Colors.cyanAccent,
+                  ),
                   title: Text(_quests[i]['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(_quests[i]['desc']),
                   trailing: _quests[i]['isDone'] ? const Icon(Icons.check_circle, color: Colors.green) : Text("+${_quests[i]['xp']} XP"),
@@ -260,11 +192,10 @@ class _GameDashboardState extends State<GameDashboard> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(30.0),
-              child: OutlinedButton.icon(
-                onPressed: _resetQuests,
-                icon: const Icon(Icons.refresh),
-                label: const Text("START NEW DAY"),
+              child: OutlinedButton(
+                onPressed: _resetDay,
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.cyanAccent, side: const BorderSide(color: Colors.cyanAccent)),
+                child: const Text("START NEW DAY"),
               ),
             ),
           ),

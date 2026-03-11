@@ -1,78 +1,100 @@
-# LifeQuest ⚔️
+# LifeQuest
 
-**Level Up Your Real Life.**
+**Turn your real life into a game you actually want to play.**
 
-LifeQuest is a powerful **gamified life-management app** that turns your daily tasks, habits, and goals into an epic RPG adventure. Earn XP, level up your character, unlock skills, and battle bosses by being productive in the real world.
+LifeQuest started as a Flutter side project and grew into something much bigger. The idea was simple — what if the same mechanics that make video games addictive could be used to build real habits, hit real goals, and actually track personal growth? That question became this app.
 
-![LifeQuest Hero](https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2670&ixlib=rb-4.0.3)
-
-## 🚀 Features
-
-### 🎮 RPG Mechanics
-- **Character System**: Track stats like Health ❤️, Knowledge 🧠, Fitness 💪, Happiness 😊, and Social 🤝.
-- **Leveling Up**: Earn XP from tasks to reach new levels (Apprentice → Legend).
-- **Streak System**: Maintain daily streaks to earn combo multipliers.
-
-### ⚔️ Questing System
-- **Daily Quests**: Recurring tasks that reset every day.
-- **Life Quests**: Massive long-term goals with sub-tasks and huge rewards.
-- **Boss Battles**: Defeat "Procrastination Monsters" and "Final Exams" by completing tasks to deal damage.
-
-### 🗺️ World Exploration
-- **World Map**: Unlock regions like *Study City*, *Fitness Mountains*, and *Career Kingdom*.
-- **Skill Tree**: Spend coins to unlock passive buffs in 5 different skill branches.
-
-### 🛠️ Tools for Success
-- **Focus Mode**: Built-in Pomodoro timer with ambient focus visualization.
-- **Mood Tracker**: Log your daily mental state and view progress over time.
-- **Achievements**: Unlock rare badges for hitting milestones.
-- **Inventory & Rewards**: Earn coins to buy avatar upgrades and potions.
+It is a web app built with React and TypeScript that works like an RPG. You complete real tasks, earn XP, level up a character, unlock skills, and fight boss battles based on things like exams, fitness challenges, or work projects. The more you show up in real life, the stronger your character gets.
 
 ---
 
-## 🛠️ Tech Stack
+## What it does
 
-Built with a modern, high-performance web stack:
+**Character and stats**
 
-- **Framework**: [React](https://react.dev/) (v18)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **State Management**: Zustand (local storage persistence)
-- **Icons**: Lucide React
-- **Animations**: CSS3 & Tailwind Animate
+Every user has a character profile with five core stats: Health, Knowledge, Fitness, Happiness, and Social. Completing different types of tasks increases different stats. Reading boosts Knowledge. Exercise boosts Fitness. Staying social boosts your Social stat. Your character visually evolves as you level up, moving through tiers from Apprentice all the way to Mythic.
+
+**Daily Quests**
+
+These are your recurring tasks — things like drinking enough water, studying for an hour, or going for a walk. Complete them to earn XP and coins. A combo multiplier builds up the more quests you complete in a single day.
+
+**Life Quests**
+
+Bigger goals with sub-tasks attached. Things like finishing a course, building a project, or training for a race. These give large XP rewards when completed and track your long-term progress in a meaningful way.
+
+**Boss Battles**
+
+Some challenges in life are just harder than others. Boss battles let you take on major obstacles — a final exam, a startup project, a fitness challenge — by completing preparation quests that deal damage to the boss. Defeating a boss gives large rewards.
+
+**Skill Tree**
+
+Five skill branches: Knowledge, Fitness, Creativity, Social, and Productivity. Spend coins to unlock skills that give XP multipliers and open up new quest types. Skills have prerequisites, so you build in a logical order.
+
+**World Map**
+
+A visual map of life areas represented as regions. Study City, Fitness Mountains, Career Kingdom, Adventure Island, Social Village. Each region has its own quests and progress tracking.
+
+**Focus Mode**
+
+A built-in Pomodoro timer with 15, 25, 45, and 60 minute modes. Sessions are tracked and contribute to your daily progress.
+
+**Mood Tracker**
+
+Log how you are feeling each day on a simple scale. Your history is stored and visualized so you can see patterns over time.
+
+**Achievements**
+
+Milestone badges with four rarity tiers: Common, Rare, Epic, and Legendary. They unlock automatically as you hit targets across the app.
+
+**AI Mentor**
+
+A companion character that sends contextual messages based on your progress, celebrates achievements, and suggests quests when you are stuck.
 
 ---
 
-## ⚡️ Quick Start
+## Tech stack
 
-### 1. Clone the repo
+- React 18
+- TypeScript
+- Tailwind CSS
+- Vite
+- Zustand for state management with localStorage persistence
+- Lucide React for icons
+
+---
+
+## Running it locally
+
+Clone the repo and install dependencies:
+
 ```bash
 git clone https://github.com/Naomi002/life_quest.git
 cd life_quest
-```
-
-### 2. Install dependencies
-```bash
 npm install
 ```
 
-### 3. Run the app
+Start the development server:
+
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser to start your adventure! 🚀
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 📱 Mobile Support
-LifeQuest is fully responsive and works beautifully on mobile browsers. You can add it to your home screen (PWA style) for a native app feel.
+## Mobile
+
+The app is fully responsive and works on mobile browsers. It is designed to feel comfortable on a phone screen, which is where most people will actually use something like this.
 
 ---
 
-## 🤝 Contributing
-Pull requests are welcome! Feel free to open an issue for feature suggestions or bug reports.
+## Contributing
 
-## 📄 License
-MIT License. Free to use and modify.
+If you want to add something or fix something, pull requests are open. If you have an idea that does not fit neatly into a PR, open an issue and explain it.
+
+---
+
+## License
+
+MIT. Use it, fork it, build on it.
